@@ -5,29 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Wildlife Detection System - Multi-Modal AI Scanner">
     <title>Wildlife Detection System — WLDS-9</title>
-    
-    <!-- Preconnect for faster font loading -->
+
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
+
+    <!-- Font Awesome 6 Free -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+          integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     <!-- Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
-<!-- HEADER -->
+<!-- ═══════════════════════════════════
+     HEADER
+════════════════════════════════════ -->
 <header class="header">
     <div class="header-content">
+
         <div class="logo-section">
-            <div class="logo-icon">🦜</div>
+            <div class="logo-icon">
+                <i class="fa-solid fa-crow"></i>
+            </div>
             <div class="logo-text">
                 <h1>Wildlife Detection System</h1>
-                <p>Multi-Modal AI Scanner · WLDS-9</p>
+                <p>Multi-Modal AI Scanner &middot; WLDS-9</p>
             </div>
         </div>
+
         <div class="header-stats">
             <div class="stat-item">
                 <div class="stat-label">Uptime</div>
@@ -38,25 +47,28 @@
                 <div class="stat-value" id="scanCount">0</div>
             </div>
             <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
-                <span id="themeIcon">🌙</span>
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
             </button>
             <div class="status-indicator">
                 <div class="status-dot"></div>
                 <span>System Online</span>
             </div>
         </div>
+
     </div>
 </header>
 
-<!-- MAIN CONTAINER -->
+<!-- ═══════════════════════════════════
+     MAIN CONTAINER
+════════════════════════════════════ -->
 <div class="main-container">
 
-    <!-- LEFT: CONTROLS -->
+    <!-- ──────── LEFT: CONTROLS ──────── -->
     <div>
         <div class="card">
             <div class="card-header">
                 <div class="card-title">
-                    <div class="card-icon">⚙️</div>
+                    <i class="fa-solid fa-sliders card-icon"></i>
                     Input Configuration
                 </div>
             </div>
@@ -67,88 +79,109 @@
                     <div class="section-label">Analysis Mode</div>
                     <div class="mode-grid">
                         <button class="mode-card active" data-mode="audio" aria-pressed="true">
-                            <div class="mode-icon-large">🎵</div>
+                            <i class="fa-solid fa-headphones mode-icon-large"></i>
                             <div class="mode-name">Audio</div>
                             <div class="mode-desc">Acoustic</div>
                         </button>
                         <button class="mode-card" data-mode="image" aria-pressed="false">
-                            <div class="mode-icon-large">📷</div>
+                            <i class="fa-solid fa-camera mode-icon-large"></i>
                             <div class="mode-name">Visual</div>
                             <div class="mode-desc">Image</div>
                         </button>
                         <button class="mode-card" data-mode="fusion" aria-pressed="false">
-                            <div class="mode-icon-large">⚡</div>
+                            <i class="fa-solid fa-bolt mode-icon-large"></i>
                             <div class="mode-name">Fusion</div>
                             <div class="mode-desc">Combined</div>
                         </button>
                     </div>
                 </div>
 
-                <!-- AUDIO INPUT -->
-                <div class="control-section" id="audioSection">
-                    <div class="section-label">Acoustic Sensor</div>
-                    
-                    <div class="waveform-box">
-                        <canvas id="waveformCanvas" width="340" height="80" aria-label="Audio waveform visualization"></canvas>
-                        <div class="waveform-label">Signal Waveform</div>
-                    </div>
+                <!-- SENSORS WRAPPER — becomes 2-col grid in fusion mode -->
+                <div id="sensorsWrapper">
 
-                    <label class="file-upload-area" for="audioFile">
-                        <div class="upload-icon">⬆️</div>
-                        <div class="upload-text">Upload Audio File</div>
-                        <div class="upload-hint">WAV, MP3, or M4A</div>
-                        <input type="file" id="audioFile" accept="audio/*" hidden>
-                    </label>
+                    <!-- AUDIO INPUT -->
+                    <div class="control-section" id="audioSection">
+                        <div class="section-label">
+                            <i class="fa-solid fa-microchip section-label-icon"></i>
+                            Acoustic Sensor
+                        </div>
 
-                    <button class="btn btn-record" id="recordBtn">
-                        <span id="recordIcon">🎤</span>
-                        <span id="recordText">Record 5s Sample</span>
-                    </button>
-
-                    <div class="progress-wrap" id="recordProgress">
-                        <div class="progress-fill" id="recordFill"></div>
-                    </div>
-
-                    <audio id="audioPreview" controls></audio>
-                </div>
-
-                <!-- IMAGE INPUT -->
-                <div class="control-section" id="imageSection" style="display:none">
-                    <div class="section-label">Optical Sensor</div>
-
-                    <div class="camera-box">
-                        <video id="cameraPreview" autoplay playsinline aria-label="Camera feed"></video>
-                        <canvas id="photoCanvas" aria-label="Captured photo"></canvas>
-                        <div class="camera-overlay">
-                            <div class="camera-corners">
-                                <div class="corner tl"></div>
-                                <div class="corner tr"></div>
-                                <div class="corner bl"></div>
-                                <div class="corner br"></div>
+                        <div class="waveform-box">
+                            <canvas id="waveformCanvas" width="340" height="80"
+                                    aria-label="Audio waveform visualization"></canvas>
+                            <div class="waveform-label">
+                                <i class="fa-solid fa-signal"></i>&nbsp;Signal Waveform
                             </div>
                         </div>
-                        <div class="camera-idle" id="cameraIdle">
-                            <div class="camera-idle-icon">📷</div>
-                            <div class="camera-idle-text">Camera Inactive</div>
+
+                        <label class="file-upload-area" for="audioFile">
+                            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                            <div class="upload-text">Upload Audio File</div>
+                            <div class="upload-hint">WAV, MP3, or M4A</div>
+                            <input type="file" id="audioFile" accept="audio/*" hidden>
+                        </label>
+
+                        <button class="btn btn-record" id="recordBtn">
+                            <i class="fa-solid fa-microphone" id="recordIcon"></i>
+                            <span id="recordText">Record 5s Sample</span>
+                        </button>
+
+                        <div class="progress-wrap" id="recordProgress">
+                            <div class="progress-fill" id="recordFill"></div>
+                        </div>
+
+                        <audio id="audioPreview" controls></audio>
+                    </div>
+
+                    <!-- IMAGE INPUT -->
+                    <div class="control-section" id="imageSection" style="display:none">
+                        <div class="section-label">
+                            <i class="fa-solid fa-eye section-label-icon"></i>
+                            Optical Sensor
+                        </div>
+
+                        <div class="camera-box">
+                            <video id="cameraPreview" autoplay playsinline aria-label="Camera feed"></video>
+                            <canvas id="photoCanvas" aria-label="Captured photo"></canvas>
+                            <div class="camera-overlay">
+                                <div class="camera-corners">
+                                    <div class="corner tl"></div>
+                                    <div class="corner tr"></div>
+                                    <div class="corner bl"></div>
+                                    <div class="corner br"></div>
+                                </div>
+                            </div>
+                            <div class="camera-idle" id="cameraIdle">
+                                <i class="fa-solid fa-camera camera-idle-icon"></i>
+                                <div class="camera-idle-text">Camera Inactive</div>
+                            </div>
+                        </div>
+
+                        <label class="file-upload-area" for="imageFile">
+                            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                            <div class="upload-text">Upload Image File</div>
+                            <div class="upload-hint">JPG, PNG, or WebP</div>
+                            <input type="file" id="imageFile" accept="image/*" hidden>
+                        </label>
+
+                        <div class="camera-controls">
+                            <button class="btn btn-secondary" id="openCameraBtn">
+                                <i class="fa-solid fa-video"></i>&nbsp;Open Camera
+                            </button>
+                            <button class="btn btn-secondary" id="captureBtn">
+                                <i class="fa-solid fa-circle-dot"></i>&nbsp;Capture
+                            </button>
+                            <button class="btn btn-stop-cam" id="stopCameraBtn" style="display:none">
+                                <i class="fa-solid fa-video-slash"></i>&nbsp;Stop Camera
+                            </button>
                         </div>
                     </div>
 
-                    <label class="file-upload-area" for="imageFile">
-                        <div class="upload-icon">⬆️</div>
-                        <div class="upload-text">Upload Image File</div>
-                        <div class="upload-hint">JPG, PNG, or WebP</div>
-                        <input type="file" id="imageFile" accept="image/*" hidden>
-                    </label>
-
-                    <div class="camera-controls">
-                        <button class="btn btn-secondary" id="openCameraBtn">📹 Open Camera</button>
-                        <button class="btn btn-secondary" id="captureBtn">📸 Capture</button>
-                    </div>
-                </div>
+                </div><!-- /sensorsWrapper -->
 
                 <!-- ANALYZE BUTTON -->
                 <button class="btn btn-primary analyze-button" id="analyzeBtn">
-                    <span>🔍</span>
+                    <i class="fa-solid fa-satellite-dish"></i>
                     <span id="analyzeBtnText">Initiate Scan</span>
                 </button>
 
@@ -156,43 +189,59 @@
         </div>
     </div>
 
-    <!-- CENTER: RESULTS -->
+    <!-- ──────── CENTER: RESULTS ──────── -->
     <div class="results-container">
-        
+
         <div class="card">
             <div class="card-header">
                 <div class="card-title">
-                    <div class="card-icon">🎯</div>
+                    <i class="fa-solid fa-crosshairs card-icon"></i>
                     Detection Results
                 </div>
                 <span id="scanStatus" class="scan-status-badge">STANDBY</span>
             </div>
             <div class="card-body">
                 <div class="results-grid">
+
                     <div class="result-card primary">
-                        <div class="result-label">Species Identified</div>
+                        <div class="result-label">
+                            <i class="fa-solid fa-dna"></i>&nbsp;Species Identified
+                        </div>
                         <div class="result-value" id="species">— — —</div>
                         <div class="result-subtitle" id="speciesType">Awaiting Scan</div>
                     </div>
+
                     <div class="result-card">
-                        <div class="result-label">Confidence</div>
+                        <div class="result-label">
+                            <i class="fa-solid fa-gauge-high"></i>&nbsp;Confidence
+                        </div>
                         <div class="result-value" id="confidence">—%</div>
                         <div class="confidence-bar">
                             <div class="confidence-fill" id="confFill"></div>
                         </div>
                     </div>
+
                     <div class="result-card">
-                        <div class="result-label">Distance</div>
+                        <div class="result-label">
+                            <i class="fa-solid fa-location-arrow"></i>&nbsp;Distance
+                        </div>
                         <div class="result-value" id="distance">— m</div>
                     </div>
+
                     <div class="result-card">
-                        <div class="result-label">Scan Mode</div>
+                        <div class="result-label">
+                            <i class="fa-solid fa-layer-group"></i>&nbsp;Scan Mode
+                        </div>
                         <div class="result-value" id="modeDisplay">AUDIO</div>
                     </div>
+
                     <div class="result-card">
-                        <div class="result-label">Threat Level</div>
+                        <div class="result-label">
+                            <i class="fa-solid fa-shield-halved"></i>&nbsp;Threat Level
+                        </div>
                         <div class="result-value" id="threatLevel">SAFE</div>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -200,30 +249,46 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-title">
-                    <div class="card-icon">📊</div>
+                    <i class="fa-solid fa-chart-bar card-icon"></i>
                     Model Confidence Breakdown
                 </div>
             </div>
             <div class="card-body">
                 <div class="model-bars">
                     <div class="model-row">
-                        <div class="model-label">Audio CNN</div>
-                        <div class="model-track"><div class="model-fill audio" id="audioFill"></div></div>
+                        <div class="model-label">
+                            <i class="fa-solid fa-wave-square model-label-icon"></i> Audio CNN
+                        </div>
+                        <div class="model-track">
+                            <div class="model-fill audio" id="audioFill"></div>
+                        </div>
                         <div class="model-pct" id="audioPct">0%</div>
                     </div>
                     <div class="model-row">
-                        <div class="model-label">Image Net</div>
-                        <div class="model-track"><div class="model-fill image" id="imageFill"></div></div>
+                        <div class="model-label">
+                            <i class="fa-solid fa-eye model-label-icon"></i> Image Net
+                        </div>
+                        <div class="model-track">
+                            <div class="model-fill image" id="imageFill"></div>
+                        </div>
                         <div class="model-pct" id="imagePct">0%</div>
                     </div>
                     <div class="model-row">
-                        <div class="model-label">Distance</div>
-                        <div class="model-track"><div class="model-fill distance" id="distFill"></div></div>
+                        <div class="model-label">
+                            <i class="fa-solid fa-compass model-label-icon"></i> Distance
+                        </div>
+                        <div class="model-track">
+                            <div class="model-fill distance" id="distFill"></div>
+                        </div>
                         <div class="model-pct" id="distPct">0%</div>
                     </div>
                     <div class="model-row">
-                        <div class="model-label">⚡ Fusion</div>
-                        <div class="model-track"><div class="model-fill fusion" id="fusionFill"></div></div>
+                        <div class="model-label">
+                            <i class="fa-solid fa-bolt model-label-icon"></i> Fusion
+                        </div>
+                        <div class="model-track">
+                            <div class="model-fill fusion" id="fusionFill"></div>
+                        </div>
                         <div class="model-pct" id="fusionPct">0%</div>
                     </div>
                 </div>
@@ -232,16 +297,18 @@
 
     </div>
 
-    <!-- RIGHT: LOGS & HISTORY -->
+    <!-- ──────── RIGHT: LOGS & HISTORY ──────── -->
     <div>
-        
+
         <div class="card">
             <div class="card-header">
                 <div class="card-title">
-                    <div class="card-icon">📝</div>
+                    <i class="fa-solid fa-terminal card-icon"></i>
                     System Logs
                 </div>
-                <button class="clear-btn" id="clearLogs">Clear</button>
+                <button class="clear-btn" id="clearLogs">
+                    <i class="fa-solid fa-trash-can"></i>&nbsp;Clear
+                </button>
             </div>
             <div class="card-body">
                 <div class="log-container" id="logFeed">
@@ -260,7 +327,7 @@
         <div class="card" style="margin-top:1.5rem">
             <div class="card-header">
                 <div class="card-title">
-                    <div class="card-icon">💾</div>
+                    <i class="fa-solid fa-code card-icon"></i>
                     Raw Output
                 </div>
             </div>
@@ -272,7 +339,7 @@
         <div class="card" style="margin-top:1.5rem">
             <div class="card-header">
                 <div class="card-title">
-                    <div class="card-icon">📜</div>
+                    <i class="fa-solid fa-clock-rotate-left card-icon"></i>
                     Detection History
                 </div>
             </div>
