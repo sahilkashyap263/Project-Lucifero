@@ -3,765 +3,291 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WLDS-9 | Wildlife Detection System</title>
+    <meta name="description" content="Wildlife Detection System - Multi-Modal AI Scanner">
+    <title>Wildlife Detection System — WLDS-9</title>
+    
+    <!-- Preconnect for faster font loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-<style>
-:root {
-    --bg-void:      #040a0f;
-    --bg-deep:      #060d14;
-    --bg-panel:     #080f19;
-    --bg-block:     #0b1622;
-    --bg-input:     #0d1a28;
-    --green:        #00ff88;
-    --green-dim:    #00ff8833;
-    --green-glow:   0 0 12px #00ff8866;
-    --amber:        #f5a623;
-    --amber-dim:    #f5a62333;
-    --amber-glow:   0 0 12px #f5a62366;
-    --blue:         #38bdf8;
-    --blue-dim:     #38bdf822;
-    --blue-glow:    0 0 12px #38bdf866;
-    --red:          #ff3b3b;
-    --red-dim:      #ff3b3b33;
-    --text-primary: #c8dde8;
-    --text-dim:     #4a6272;
-    --text-label:   #2d5066;
-    --border:       #0f2235;
-    --border-bright:#1a3a55;
-    --font-mono:    'Share Tech Mono', monospace;
-    --font-display: 'Orbitron', monospace;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html, body {
-    height: 100%;
-    background: var(--bg-void);
-    color: var(--text-primary);
-    font-family: var(--font-mono);
-    overflow: hidden;
-}
-
-.scanlines {
-    position: fixed; inset: 0;
-    background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
-    pointer-events: none; z-index: 9998;
-}
-
-/* STATUS BAR */
-.status-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    height: 38px; padding: 0 20px;
-    background: var(--bg-deep);
-    border-bottom: 1px solid var(--border-bright);
-    font-size: 11px; letter-spacing: 0.08em;
-    color: var(--text-dim); flex-shrink: 0;
-}
-.device-id { color: var(--green); font-family: var(--font-display); font-size: 10px; letter-spacing: 0.15em; }
-.region-tag { color: var(--amber); font-size: 10px; }
-.separator { margin: 0 12px; color: var(--border-bright); }
-.status-center { display: flex; align-items: center; }
-.led-group { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-dim); }
-.led { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.led-green { background: var(--green); box-shadow: var(--green-glow); }
-.led-amber { background: var(--amber); box-shadow: var(--amber-glow); }
-.led-blue  { background: var(--blue);  box-shadow: var(--blue-glow); }
-.led-red   { background: var(--red); }
-
-@keyframes pulse-glow {
-    0%, 100% { opacity: 1; box-shadow: 0 0 8px currentColor; }
-    50% { opacity: 0.5; box-shadow: 0 0 3px currentColor; }
-}
-@keyframes blink {
-    0%, 49% { opacity: 1; }
-    50%, 100% { opacity: 0.1; }
-}
-@keyframes scan-pulse {
-    0%, 100% { box-shadow: 0 0 8px var(--amber); }
-    50% { box-shadow: 0 0 25px var(--amber), 0 0 50px var(--amber-dim); }
-}
-@keyframes fadeInRow {
-    from { opacity: 0; transform: translateX(-4px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-.pulse { animation: pulse-glow 2.5s ease-in-out infinite; }
-.blink { animation: blink 0.6s step-end infinite; }
-.clock { font-family: var(--font-display); font-size: 12px; color: var(--green); letter-spacing: 0.1em; }
-.uptime { font-size: 10px; }
-
-/* DASHBOARD */
-.dashboard {
-    display: grid;
-    grid-template-columns: 300px 1fr 300px;
-    height: calc(100vh - 38px - 30px);
-    overflow: hidden;
-}
-
-.panel { background: var(--bg-panel); display: flex; flex-direction: column; overflow: hidden; }
-.panel-left  { border-right: 1px solid var(--border-bright); overflow-y: auto; }
-.panel-center { background: var(--bg-deep); border-right: 1px solid var(--border-bright); }
-.panel-right { overflow-y: auto; }
-
-.panel-left::-webkit-scrollbar,
-.panel-right::-webkit-scrollbar { width: 3px; }
-.panel-left::-webkit-scrollbar-thumb,
-.panel-right::-webkit-scrollbar-thumb { background: var(--border-bright); }
-
-.panel-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 8px 14px; background: var(--bg-void);
-    border-bottom: 1px solid var(--border-bright);
-    font-size: 10px; letter-spacing: 0.15em;
-    color: var(--text-label); font-family: var(--font-mono); flex-shrink: 0;
-}
-.panel-header.small { background: transparent; border-bottom: 1px solid var(--border); padding: 6px 14px; }
-.panel-label { color: var(--blue); }
-.scan-status { font-family: var(--font-display); font-size: 10px; color: var(--amber); letter-spacing: 0.2em; }
-
-/* CONTROLS */
-.control-block { padding: 12px 14px; border-bottom: 1px solid var(--border); }
-.control-label { font-size: 9px; letter-spacing: 0.2em; color: var(--text-label); margin-bottom: 10px; }
-
-.mode-buttons { display: flex; gap: 6px; }
-.mode-btn {
-    flex: 1; display: flex; flex-direction: column; align-items: center;
-    padding: 8px 4px; background: var(--bg-input);
-    border: 1px solid var(--border-bright); border-radius: 4px;
-    color: var(--text-dim); cursor: pointer; transition: all 0.2s; font-family: var(--font-mono);
-}
-.mode-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
-.mode-btn.active { border-color: var(--green); color: var(--green); background: var(--green-dim); box-shadow: var(--green-glow); }
-.mode-icon { font-size: 18px; margin-bottom: 3px; }
-.mode-text { font-size: 10px; font-weight: bold; letter-spacing: 0.1em; font-family: var(--font-display); }
-.mode-sub  { font-size: 8px; opacity: 0.6; margin-top: 2px; }
-
-.waveform-container {
-    background: var(--bg-void); border: 1px solid var(--border-bright);
-    border-radius: 4px; padding: 6px; margin-bottom: 10px;
-}
-#waveformCanvas { display: block; width: 100%; height: 60px; }
-.waveform-label { font-size: 8px; color: var(--text-label); letter-spacing: 0.15em; margin-top: 4px; text-align: center; }
-
-.input-row { margin-bottom: 8px; }
-.file-label {
-    display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px;
-    background: var(--bg-input); border: 1px dashed var(--border-bright); border-radius: 4px;
-    color: var(--text-dim); font-size: 10px; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s;
-}
-.file-label:hover { border-color: var(--blue); color: var(--blue); }
-.file-icon { color: var(--amber); font-size: 14px; }
-
-.action-btn {
-    width: 100%; padding: 8px 10px; background: var(--bg-input);
-    border: 1px solid var(--border-bright); border-radius: 4px;
-    color: var(--text-dim); font-family: var(--font-mono); font-size: 11px;
-    letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s;
-    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
-}
-.action-btn:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
-.record-btn.recording { border-color: var(--red); color: var(--red); background: var(--red-dim); }
-
-.btn-led { width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; transition: all 0.2s; }
-.recording .btn-led { background: var(--red); box-shadow: 0 0 8px var(--red); animation: blink 0.5s step-end infinite; }
-
-.progress-bar-wrap {
-    background: var(--bg-void); border: 1px solid var(--border-bright);
-    border-radius: 3px; height: 20px; position: relative; overflow: hidden; margin-bottom: 8px;
-}
-.progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--red), #ff6b6b); transition: width 0.1s linear; width: 0%; }
-.progress-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; letter-spacing: 0.15em; color: white; }
-
-audio { width: 100%; margin-top: 8px; filter: hue-rotate(160deg) brightness(0.8); height: 30px; }
-
-.camera-viewport {
-    position: relative; background: var(--bg-void); border: 1px solid var(--border-bright);
-    border-radius: 4px; overflow: hidden; height: 160px; margin-bottom: 10px;
-}
-#cameraPreview, #photoCanvas { width: 100%; height: 100%; object-fit: cover; display: none; }
-.viewport-overlay { position: absolute; inset: 0; pointer-events: none; }
-.corner { position: absolute; width: 16px; height: 16px; border-color: var(--green); border-style: solid; }
-.tl { top:8px; left:8px; border-width: 2px 0 0 2px; }
-.tr { top:8px; right:8px; border-width: 2px 2px 0 0; }
-.bl { bottom:8px; left:8px; border-width: 0 0 2px 2px; }
-.br { bottom:8px; right:8px; border-width: 0 2px 2px 0; }
-.crosshair-h { position: absolute; top:50%; left:10%; right:10%; height:1px; background: rgba(0,255,136,0.2); }
-.crosshair-v { position: absolute; left:50%; top:10%; bottom:10%; width:1px; background: rgba(0,255,136,0.2); }
-.viewport-idle { position: absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:11px; letter-spacing:0.3em; color:var(--text-label); }
-.camera-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-
-.analyze-btn {
-    margin: 14px; padding: 14px; background: transparent;
-    border: 1px solid var(--green); border-radius: 6px;
-    color: var(--green); font-family: var(--font-display);
-    font-size: 13px; letter-spacing: 0.2em; cursor: pointer; transition: all 0.3s;
-}
-.analyze-btn:hover { background: var(--green-dim); box-shadow: var(--green-glow), inset 0 0 20px var(--green-dim); }
-.analyze-btn:active { transform: scale(0.98); }
-.analyze-btn.scanning { animation: scan-pulse 1s ease-in-out infinite; border-color: var(--amber); color: var(--amber); }
-.analyze-text { position: relative; z-index: 1; }
-
-.sys-stats { padding: 10px 14px; border-top: 1px solid var(--border); }
-.stat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.stat-label { font-size: 9px; color: var(--text-label); width: 28px; flex-shrink: 0; letter-spacing: 0.1em; }
-.mini-bar { flex: 1; height: 4px; background: var(--bg-input); border-radius: 2px; overflow: hidden; }
-.mini-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--blue)); border-radius: 2px; }
-.stat-val { font-size: 9px; color: var(--green); width: 28px; text-align: right; letter-spacing: 0.05em; }
-
-/* RADAR */
-.radar-section { display: flex; flex: 1; overflow: hidden; padding: 16px; }
-.radar-wrap { position: relative; flex-shrink: 0; width: 260px; height: 260px; }
-#radarCanvas { display: block; }
-.radar-center-dot {
-    position: absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    width:6px; height:6px; background:var(--green); border-radius:50%; box-shadow:var(--green-glow);
-}
-.radar-labels { position: absolute; inset:0; pointer-events:none; }
-.r-label { position: absolute; font-size:9px; color:var(--text-dim); letter-spacing:0.1em; }
-.r-n { top:2px; left:50%; transform:translateX(-50%); }
-.r-s { bottom:2px; left:50%; transform:translateX(-50%); }
-.r-e { right:4px; top:50%; transform:translateY(-50%); }
-.r-w { left:4px; top:50%; transform:translateY(-50%); }
-
-/* READOUT */
-.detection-readout { flex:1; padding-left:20px; display:flex; flex-direction:column; gap:14px; }
-.readout-block { background:var(--bg-block); border:1px solid var(--border); border-radius:4px; padding:10px 14px; position:relative; }
-.readout-block::before { content:''; position:absolute; top:0; left:0; width:3px; height:100%; background:var(--border-bright); border-radius:4px 0 0 4px; }
-.primary-readout::before { background: var(--green); }
-.readout-label { font-size:8px; letter-spacing:0.2em; color:var(--text-label); margin-bottom:6px; }
-.readout-value { font-family:var(--font-display); font-size:14px; color:var(--green); letter-spacing:0.05em; }
-.readout-value.large { font-size:22px; line-height:1.1; }
-.readout-sub { font-size:9px; color:var(--text-dim); margin-top:4px; letter-spacing:0.1em; }
-.readout-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.conf-meter { height:3px; background:var(--bg-void); border-radius:2px; margin-top:6px; overflow:hidden; }
-.conf-fill { height:100%; background:linear-gradient(90deg,var(--green),var(--blue)); border-radius:2px; transition:width 0.6s ease; }
-.mode-display { color: var(--blue); }
-
-.signal-label { font-size:8px; letter-spacing:0.2em; color:var(--text-label); margin-bottom:6px; }
-.signal-bars { display:flex; align-items:flex-end; gap:4px; height:50px; background:var(--bg-block); border:1px solid var(--border); border-radius:4px; padding:8px; }
-.sig-bar { flex:1; background:var(--green-dim); border:1px solid var(--green); border-radius:2px; transition:height 0.3s ease,background 0.3s; min-height:4px; }
-
-/* MODEL BARS */
-.model-breakdown { flex-shrink:0; border-top:1px solid var(--border-bright); }
-.model-bars { padding:12px 16px; }
-.model-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
-.model-name { font-size:9px; color:var(--text-dim); width:70px; flex-shrink:0; letter-spacing:0.1em; }
-.model-track { flex:1; height:6px; background:var(--bg-block); border-radius:3px; overflow:hidden; border:1px solid var(--border); }
-.model-fill { height:100%; border-radius:3px; transition:width 0.7s ease; width:0%; }
-.audio-fill  { background: linear-gradient(90deg,#00c4ff,#0080ff); }
-.image-fill  { background: linear-gradient(90deg,#a855f7,#7c3aed); }
-.dist-fill   { background: linear-gradient(90deg,var(--amber),#ff6b00); }
-.fusion-fill { background: linear-gradient(90deg,var(--green),#00c4a0); }
-.fusion-row .model-name { color: var(--green); }
-.model-pct { font-size:9px; color:var(--green); width:28px; text-align:right; letter-spacing:0.05em; }
-
-/* LOGS */
-.log-feed { padding:8px; overflow-y:auto; max-height:200px; flex-shrink:0; }
-.log-feed::-webkit-scrollbar { width:3px; }
-.log-feed::-webkit-scrollbar-thumb { background:var(--border-bright); }
-.log-entry { display:flex; gap:8px; margin-bottom:5px; font-size:10px; line-height:1.4; align-items:flex-start; animation:fadeInRow 0.2s ease forwards; }
-.log-time { color:var(--text-dim); flex-shrink:0; font-size:9px; }
-.log-msg { letter-spacing:0.05em; }
-.log-entry.info    .log-msg { color:var(--text-primary); }
-.log-entry.success .log-msg { color:var(--green); }
-.log-entry.warn    .log-msg { color:var(--amber); }
-.log-entry.error   .log-msg { color:var(--red); }
-
-.json-output {
-    background:var(--bg-void); padding:10px 14px; font-size:10px; color:var(--green);
-    max-height:160px; overflow-y:auto; font-family:var(--font-mono); line-height:1.6;
-    border-bottom:1px solid var(--border); flex-shrink:0;
-}
-.json-output::-webkit-scrollbar { width:3px; }
-.json-output::-webkit-scrollbar-thumb { background:var(--border-bright); }
-
-.history-list { padding:8px 14px; overflow-y:auto; flex:1; }
-.history-empty { font-size:10px; color:var(--text-label); text-align:center; padding:20px 0; letter-spacing:0.1em; }
-.history-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); font-size:10px; }
-.history-species { color:var(--green); letter-spacing:0.05em; }
-.history-conf    { color:var(--amber); }
-.history-time    { color:var(--text-dim); font-size:9px; }
-
-.clear-btn {
-    background:none; border:1px solid var(--border-bright); color:var(--text-dim);
-    font-family:var(--font-mono); font-size:9px; padding:2px 6px; border-radius:2px; cursor:pointer; letter-spacing:0.1em;
-}
-.clear-btn:hover { border-color:var(--red); color:var(--red); }
-
-/* FOOTER */
-.bottom-strip {
-    height:30px; background:var(--bg-void); border-top:1px solid var(--border-bright);
-    display:flex; align-items:center; padding:0 20px;
-    font-size:9px; color:var(--text-dim); letter-spacing:0.12em; overflow:hidden; flex-shrink:0;
-}
-.bottom-strip .separator { margin:0 12px; color:var(--border-bright); }
-#footerStatus { color:var(--green); margin-left:auto; }
-
-::-webkit-scrollbar { width:4px; height:4px; }
-::-webkit-scrollbar-track { background:var(--bg-void); }
-::-webkit-scrollbar-thumb { background:var(--border-bright); border-radius:2px; }
-</style>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
-<div class="scanlines"></div>
-
-<header class="status-bar">
-    <div class="status-left">
-        <span class="device-id">WLDS-9 // WILDLIFE DETECTION SYSTEM v2.1.4</span>
-        <span class="separator">|</span>
-        <span class="region-tag">▣ REGION: INDIA</span>
-    </div>
-    <div class="status-center">
-        <div class="led-group">
-            <div class="led led-green pulse"></div><span>SYS</span>
-            <div class="led led-amber"></div><span>AI</span>
-            <div class="led led-blue"></div><span>SEN</span>
-            <div class="led led-red blink" id="recLed" style="opacity:0.2"></div><span>REC</span>
+<!-- HEADER -->
+<header class="header">
+    <div class="header-content">
+        <div class="logo-section">
+            <div class="logo-icon">🦜</div>
+            <div class="logo-text">
+                <h1>Wildlife Detection System</h1>
+                <p>Multi-Modal AI Scanner · WLDS-9</p>
+            </div>
         </div>
-    </div>
-    <div class="status-right">
-        <span class="clock" id="clock">--:--:--</span>
-        <span class="separator">|</span>
-        <span class="uptime" id="uptime">UP: 00:00:00</span>
+        <div class="header-stats">
+            <div class="stat-item">
+                <div class="stat-label">Uptime</div>
+                <div class="stat-value" id="uptime">00:00:00</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Scans</div>
+                <div class="stat-value" id="scanCount">0</div>
+            </div>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+                <span id="themeIcon">🌙</span>
+            </button>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>System Online</span>
+            </div>
+        </div>
     </div>
 </header>
 
-<div class="dashboard">
+<!-- MAIN CONTAINER -->
+<div class="main-container">
 
-    <aside class="panel panel-left">
-        <div class="panel-header"><span class="panel-label">◈ INPUT CONFIGURATION</span></div>
+    <!-- LEFT: CONTROLS -->
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <div class="card-icon">⚙️</div>
+                    Input Configuration
+                </div>
+            </div>
+            <div class="card-body">
 
-        <div class="control-block">
-            <div class="control-label">ANALYSIS MODE</div>
-            <div class="mode-buttons">
-                <button class="mode-btn active" data-mode="audio">
-                    <span class="mode-icon">◎</span>
-                    <span class="mode-text">AUDIO</span>
-                    <span class="mode-sub">Acoustic only</span>
+                <!-- MODE SELECTOR -->
+                <div class="control-section">
+                    <div class="section-label">Analysis Mode</div>
+                    <div class="mode-grid">
+                        <button class="mode-card active" data-mode="audio" aria-pressed="true">
+                            <div class="mode-icon-large">🎵</div>
+                            <div class="mode-name">Audio</div>
+                            <div class="mode-desc">Acoustic</div>
+                        </button>
+                        <button class="mode-card" data-mode="image" aria-pressed="false">
+                            <div class="mode-icon-large">📷</div>
+                            <div class="mode-name">Visual</div>
+                            <div class="mode-desc">Image</div>
+                        </button>
+                        <button class="mode-card" data-mode="fusion" aria-pressed="false">
+                            <div class="mode-icon-large">⚡</div>
+                            <div class="mode-name">Fusion</div>
+                            <div class="mode-desc">Combined</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AUDIO INPUT -->
+                <div class="control-section" id="audioSection">
+                    <div class="section-label">Acoustic Sensor</div>
+                    
+                    <div class="waveform-box">
+                        <canvas id="waveformCanvas" width="340" height="80" aria-label="Audio waveform visualization"></canvas>
+                        <div class="waveform-label">Signal Waveform</div>
+                    </div>
+
+                    <label class="file-upload-area" for="audioFile">
+                        <div class="upload-icon">⬆️</div>
+                        <div class="upload-text">Upload Audio File</div>
+                        <div class="upload-hint">WAV, MP3, or M4A</div>
+                        <input type="file" id="audioFile" accept="audio/*" hidden>
+                    </label>
+
+                    <button class="btn btn-record" id="recordBtn">
+                        <span id="recordIcon">🎤</span>
+                        <span id="recordText">Record 5s Sample</span>
+                    </button>
+
+                    <div class="progress-wrap" id="recordProgress">
+                        <div class="progress-fill" id="recordFill"></div>
+                    </div>
+
+                    <audio id="audioPreview" controls></audio>
+                </div>
+
+                <!-- IMAGE INPUT -->
+                <div class="control-section" id="imageSection" style="display:none">
+                    <div class="section-label">Optical Sensor</div>
+
+                    <div class="camera-box">
+                        <video id="cameraPreview" autoplay playsinline aria-label="Camera feed"></video>
+                        <canvas id="photoCanvas" aria-label="Captured photo"></canvas>
+                        <div class="camera-overlay">
+                            <div class="camera-corners">
+                                <div class="corner tl"></div>
+                                <div class="corner tr"></div>
+                                <div class="corner bl"></div>
+                                <div class="corner br"></div>
+                            </div>
+                        </div>
+                        <div class="camera-idle" id="cameraIdle">
+                            <div class="camera-idle-icon">📷</div>
+                            <div class="camera-idle-text">Camera Inactive</div>
+                        </div>
+                    </div>
+
+                    <label class="file-upload-area" for="imageFile">
+                        <div class="upload-icon">⬆️</div>
+                        <div class="upload-text">Upload Image File</div>
+                        <div class="upload-hint">JPG, PNG, or WebP</div>
+                        <input type="file" id="imageFile" accept="image/*" hidden>
+                    </label>
+
+                    <div class="camera-controls">
+                        <button class="btn btn-secondary" id="openCameraBtn">📹 Open Camera</button>
+                        <button class="btn btn-secondary" id="captureBtn">📸 Capture</button>
+                    </div>
+                </div>
+
+                <!-- ANALYZE BUTTON -->
+                <button class="btn btn-primary analyze-button" id="analyzeBtn">
+                    <span>🔍</span>
+                    <span id="analyzeBtnText">Initiate Scan</span>
                 </button>
-                <button class="mode-btn" data-mode="image">
-                    <span class="mode-icon">◫</span>
-                    <span class="mode-text">VISUAL</span>
-                    <span class="mode-sub">Image only</span>
-                </button>
-                <button class="mode-btn" data-mode="fusion">
-                    <span class="mode-icon">⊕</span>
-                    <span class="mode-text">FUSION</span>
-                    <span class="mode-sub">Multi-modal</span>
-                </button>
+
             </div>
         </div>
+    </div>
 
-        <div class="control-block" id="audioBlock">
-            <div class="control-label">ACOUSTIC SENSOR INPUT</div>
-            <div class="waveform-container">
-                <canvas id="waveformCanvas" width="280" height="60"></canvas>
-                <div class="waveform-label">SIGNAL WAVEFORM</div>
-            </div>
-            <div class="input-row">
-                <label class="file-label" for="audioFile">
-                    <span class="file-icon">↑</span> LOAD AUDIO FILE
-                    <input type="file" id="audioFile" accept="audio/*" hidden>
-                </label>
-            </div>
-            <button class="action-btn record-btn" id="recordAudioBtn">
-                <span class="btn-led" id="recIndicator"></span>
-                ◉ RECORD 5s SAMPLE
-            </button>
-            <div class="progress-bar-wrap" id="recordProgress" style="display:none">
-                <div class="progress-bar-fill" id="recordFill"></div>
-                <span class="progress-label" id="recordLabel">RECORDING...</span>
-            </div>
-            <audio id="audioPreview" controls></audio>
-        </div>
-
-        <div class="control-block" id="imageBlock" style="display:none">
-            <div class="control-label">OPTICAL SENSOR INPUT</div>
-            <div class="camera-viewport">
-                <video id="cameraPreview" autoplay playsinline></video>
-                <canvas id="photoCanvas"></canvas>
-                <div class="viewport-overlay">
-                    <div class="corner tl"></div><div class="corner tr"></div>
-                    <div class="corner bl"></div><div class="corner br"></div>
-                    <div class="crosshair-h"></div><div class="crosshair-v"></div>
+    <!-- CENTER: RESULTS -->
+    <div class="results-container">
+        
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <div class="card-icon">🎯</div>
+                    Detection Results
                 </div>
-                <div class="viewport-idle" id="viewportIdle">NO SIGNAL</div>
+                <span id="scanStatus" class="scan-status-badge">STANDBY</span>
             </div>
-            <div class="input-row">
-                <label class="file-label" for="imageFile">
-                    <span class="file-icon">↑</span> LOAD IMAGE FILE
-                    <input type="file" id="imageFile" accept="image/*" hidden>
-                </label>
-            </div>
-            <div class="camera-controls">
-                <button class="action-btn" id="openCameraBtn">◈ OPEN CAMERA</button>
-                <button class="action-btn" id="capturePhotoBtn">◉ CAPTURE</button>
-            </div>
-        </div>
-
-        <button class="analyze-btn" id="analyzeBtn">
-            <span class="analyze-text">⟫ INITIATE SCAN</span>
-        </button>
-
-        <div class="sys-stats">
-            <div class="stat-row"><span class="stat-label">CPU</span><div class="mini-bar"><div class="mini-fill" style="width:34%"></div></div><span class="stat-val">34%</span></div>
-            <div class="stat-row"><span class="stat-label">MEM</span><div class="mini-bar"><div class="mini-fill" style="width:61%"></div></div><span class="stat-val">61%</span></div>
-            <div class="stat-row"><span class="stat-label">GPU</span><div class="mini-bar"><div class="mini-fill" style="width:22%"></div></div><span class="stat-val">22%</span></div>
-        </div>
-    </aside>
-
-    <main class="panel panel-center">
-        <div class="panel-header">
-            <span class="panel-label">◈ DETECTION OUTPUT</span>
-            <span class="scan-status" id="scanStatus">STANDBY</span>
-        </div>
-
-        <div class="radar-section">
-            <div class="radar-wrap">
-                <canvas id="radarCanvas" width="260" height="260"></canvas>
-                <div class="radar-center-dot"></div>
-                <div class="radar-labels">
-                    <span class="r-label r-n">N</span>
-                    <span class="r-label r-s">S</span>
-                    <span class="r-label r-e">E</span>
-                    <span class="r-label r-w">W</span>
-                </div>
-            </div>
-            <div class="detection-readout">
-                <div class="readout-block primary-readout">
-                    <div class="readout-label">SPECIES ID</div>
-                    <div class="readout-value large" id="species">— — —</div>
-                    <div class="readout-sub" id="speciesType">AWAITING INPUT</div>
-                </div>
-                <div class="readout-grid">
-                    <div class="readout-block">
-                        <div class="readout-label">CONFIDENCE</div>
-                        <div class="readout-value" id="confidence">— %</div>
-                        <div class="conf-meter"><div class="conf-fill" id="confFill" style="width:0%"></div></div>
+            <div class="card-body">
+                <div class="results-grid">
+                    <div class="result-card primary">
+                        <div class="result-label">Species Identified</div>
+                        <div class="result-value" id="species">— — —</div>
+                        <div class="result-subtitle" id="speciesType">Awaiting Scan</div>
                     </div>
-                    <div class="readout-block">
-                        <div class="readout-label">DISTANCE EST.</div>
-                        <div class="readout-value" id="distance">— m</div>
+                    <div class="result-card">
+                        <div class="result-label">Confidence</div>
+                        <div class="result-value" id="confidence">—%</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confFill"></div>
+                        </div>
                     </div>
-                    <div class="readout-block">
-                        <div class="readout-label">SCAN MODE</div>
-                        <div class="readout-value mode-display" id="modeDisplay">AUDIO</div>
+                    <div class="result-card">
+                        <div class="result-label">Distance</div>
+                        <div class="result-value" id="distance">— m</div>
                     </div>
-                    <div class="readout-block">
-                        <div class="readout-label">THREAT LEVEL</div>
-                        <div class="readout-value" id="threatLevel">SAFE</div>
+                    <div class="result-card">
+                        <div class="result-label">Scan Mode</div>
+                        <div class="result-value" id="modeDisplay">AUDIO</div>
                     </div>
-                </div>
-                <div class="signal-section">
-                    <div class="signal-label">SIGNAL STRENGTH</div>
-                    <div class="signal-bars">
-                        <div class="sig-bar" style="height:20%"></div>
-                        <div class="sig-bar" style="height:35%"></div>
-                        <div class="sig-bar" style="height:55%"></div>
-                        <div class="sig-bar" style="height:40%"></div>
-                        <div class="sig-bar" style="height:70%"></div>
-                        <div class="sig-bar" style="height:90%"></div>
-                        <div class="sig-bar" style="height:75%"></div>
-                        <div class="sig-bar" style="height:60%"></div>
+                    <div class="result-card">
+                        <div class="result-label">Threat Level</div>
+                        <div class="result-value" id="threatLevel">SAFE</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="model-breakdown">
-            <div class="panel-header small"><span class="panel-label">◈ MODEL CONFIDENCE BREAKDOWN</span></div>
-            <div class="model-bars">
-                <div class="model-bar-row"><span class="model-name">AUDIO CNN</span><div class="model-track"><div class="model-fill audio-fill" id="audioFill"></div></div><span class="model-pct" id="audioPct">0%</span></div>
-                <div class="model-bar-row"><span class="model-name">IMAGE NET</span><div class="model-track"><div class="model-fill image-fill" id="imageFill"></div></div><span class="model-pct" id="imagePct">0%</span></div>
-                <div class="model-bar-row"><span class="model-name">DISTANCE</span><div class="model-track"><div class="model-fill dist-fill" id="distFill"></div></div><span class="model-pct" id="distPct">0%</span></div>
-                <div class="model-bar-row fusion-row"><span class="model-name">⊕ FUSION</span><div class="model-track"><div class="model-fill fusion-fill" id="fusionFill"></div></div><span class="model-pct" id="fusionPct">0%</span></div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <div class="card-icon">📊</div>
+                    Model Confidence Breakdown
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="model-bars">
+                    <div class="model-row">
+                        <div class="model-label">Audio CNN</div>
+                        <div class="model-track"><div class="model-fill audio" id="audioFill"></div></div>
+                        <div class="model-pct" id="audioPct">0%</div>
+                    </div>
+                    <div class="model-row">
+                        <div class="model-label">Image Net</div>
+                        <div class="model-track"><div class="model-fill image" id="imageFill"></div></div>
+                        <div class="model-pct" id="imagePct">0%</div>
+                    </div>
+                    <div class="model-row">
+                        <div class="model-label">Distance</div>
+                        <div class="model-track"><div class="model-fill distance" id="distFill"></div></div>
+                        <div class="model-pct" id="distPct">0%</div>
+                    </div>
+                    <div class="model-row">
+                        <div class="model-label">⚡ Fusion</div>
+                        <div class="model-track"><div class="model-fill fusion" id="fusionFill"></div></div>
+                        <div class="model-pct" id="fusionPct">0%</div>
+                    </div>
+                </div>
             </div>
         </div>
-    </main>
 
-    <aside class="panel panel-right">
-        <div class="panel-header">
-            <span class="panel-label">◈ SYSTEM TELEMETRY</span>
-            <button class="clear-btn" id="clearLogs">CLR</button>
+    </div>
+
+    <!-- RIGHT: LOGS & HISTORY -->
+    <div>
+        
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <div class="card-icon">📝</div>
+                    System Logs
+                </div>
+                <button class="clear-btn" id="clearLogs">Clear</button>
+            </div>
+            <div class="card-body">
+                <div class="log-container" id="logFeed">
+                    <div class="log-entry">
+                        <span class="log-time">00:00:00</span>
+                        <span class="log-msg">System initialized. All sensors online.</span>
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-time">00:00:01</span>
+                        <span class="log-msg">AI models loaded. Ready for detection.</span>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="log-feed" id="logFeed">
-            <div class="log-entry info"><span class="log-time">00:00:00</span><span class="log-msg">SYSTEM INITIALIZED. AWAITING INPUT.</span></div>
-            <div class="log-entry info"><span class="log-time">00:00:01</span><span class="log-msg">AI CORE LOADED. MODELS WARM.</span></div>
-            <div class="log-entry info"><span class="log-time">00:00:02</span><span class="log-msg">SENSOR ARRAY: AUDIO ✓  OPTICAL ✓</span></div>
+
+        <div class="card" style="margin-top:1.5rem">
+            <div class="card-header">
+                <div class="card-title">
+                    <div class="card-icon">💾</div>
+                    Raw Output
+                </div>
+            </div>
+            <div class="card-body">
+                <pre class="json-box" id="jsonOutput">// No scan data yet</pre>
+            </div>
         </div>
-        <div class="panel-header small" style="margin-top:12px"><span class="panel-label">◈ RAW PAYLOAD</span></div>
-        <pre class="json-output" id="jsonOutput">// No scan data yet.
-// Initiate scan to populate.</pre>
-        <div class="panel-header small" style="margin-top:12px"><span class="panel-label">◈ DETECTION HISTORY</span></div>
-        <div class="history-list" id="historyList">
-            <div class="history-empty">No detections logged.</div>
+
+        <div class="card" style="margin-top:1.5rem">
+            <div class="card-header">
+                <div class="card-title">
+                    <div class="card-icon">📜</div>
+                    Detection History
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="history-list" id="historyList">
+                    <div class="history-empty">No detections logged yet</div>
+                </div>
+            </div>
         </div>
-    </aside>
+
+    </div>
 
 </div>
 
-<footer class="bottom-strip">
-    <span>◈ WLDS-9 WILDLIFE AI DETECTION SYSTEM</span>
-    <span class="separator">//</span>
-    <span>REGION: INDIA</span>
-    <span class="separator">//</span>
-    <span>SPECIES DB: 35 ENTRIES</span>
-    <span class="separator">//</span>
-    <span>MODELS: AUDIO-CNN · IMAGE-NET · DISTANCE-REG · FUSION</span>
-    <span class="separator">//</span>
-    <span id="footerStatus">STATUS: STANDBY</span>
-</footer>
-
-<script>
-'use strict';
-
-const state = {
-    mode: 'audio', recordedAudioBlob: null, capturedImageBlob: null,
-    cameraStream: null, isRecording: false, isScanning: false,
-    startTime: Date.now(), scanCount: 0
-};
-
-const $ = id => document.getElementById(id);
-const dom = {
-    audioFile:$('audioFile'), imageFile:$('imageFile'), audioPreview:$('audioPreview'),
-    cameraPreview:$('cameraPreview'), photoCanvas:$('photoCanvas'),
-    waveformCanvas:$('waveformCanvas'), radarCanvas:$('radarCanvas'),
-    recordBtn:$('recordAudioBtn'), recordProgress:$('recordProgress'),
-    recordFill:$('recordFill'), recordLabel:$('recordLabel'),
-    openCameraBtn:$('openCameraBtn'), captureBtn:$('capturePhotoBtn'),
-    analyzeBtn:$('analyzeBtn'), species:$('species'), speciesType:$('speciesType'),
-    confidence:$('confidence'), confFill:$('confFill'), distance:$('distance'),
-    modeDisplay:$('modeDisplay'), threatLevel:$('threatLevel'), scanStatus:$('scanStatus'),
-    logFeed:$('logFeed'), jsonOutput:$('jsonOutput'), historyList:$('historyList'),
-    clock:$('clock'), uptime:$('uptime'), footerStatus:$('footerStatus'),
-    recLed:$('recLed'), audioBlock:$('audioBlock'), imageBlock:$('imageBlock'),
-    viewportIdle:$('viewportIdle'), clearLogs:$('clearLogs'),
-    audioFill:$('audioFill'), imageFill:$('imageFill'), distFill:$('distFill'), fusionFill:$('fusionFill'),
-    audioPct:$('audioPct'), imagePct:$('imagePct'), distPct:$('distPct'), fusionPct:$('fusionPct'),
-};
-
-/* CLOCK */
-function updateClock() {
-    dom.clock.textContent = new Date().toTimeString().slice(0,8);
-    const e = Math.floor((Date.now()-state.startTime)/1000);
-    dom.uptime.textContent = `UP: ${String(Math.floor(e/3600)).padStart(2,'0')}:${String(Math.floor((e%3600)/60)).padStart(2,'0')}:${String(e%60).padStart(2,'0')}`;
-}
-setInterval(updateClock,1000); updateClock();
-
-/* WAVEFORM */
-const wCtx = dom.waveformCanvas.getContext('2d');
-let wavePoints = Array(60).fill(0), waveActive = false;
-function drawWaveform() {
-    const w=dom.waveformCanvas.width, h=dom.waveformCanvas.height, mid=h/2;
-    wCtx.clearRect(0,0,w,h);
-    wCtx.strokeStyle='rgba(30,58,90,0.5)'; wCtx.lineWidth=0.5;
-    for(let y=0;y<=h;y+=h/4){wCtx.beginPath();wCtx.moveTo(0,y);wCtx.lineTo(w,y);wCtx.stroke();}
-    wavePoints.shift();
-    wavePoints.push(waveActive?(Math.random()*0.7+0.1)*mid*0.85:Math.random()*2);
-    const step=w/(wavePoints.length-1);
-    wCtx.beginPath(); wCtx.moveTo(0,mid);
-    wavePoints.forEach((p,i)=>wCtx.lineTo(i*step, mid+(i%2===0?p:-p)));
-    wCtx.strokeStyle=waveActive?'#00ff88':'#1a3a55'; wCtx.lineWidth=1.5;
-    wCtx.shadowColor=waveActive?'#00ff88':'transparent'; wCtx.shadowBlur=waveActive?4:0;
-    wCtx.stroke(); wCtx.shadowBlur=0;
-    requestAnimationFrame(drawWaveform);
-}
-drawWaveform();
-
-/* RADAR */
-const rCtx=dom.radarCanvas.getContext('2d');
-let radarAngle=0, radarDots=[], radarScan=false;
-function drawRadar() {
-    const size=dom.radarCanvas.width, cx=size/2, cy=size/2, r=size/2-8;
-    rCtx.clearRect(0,0,size,size);
-    rCtx.fillStyle='#040a0f'; rCtx.beginPath(); rCtx.arc(cx,cy,r,0,Math.PI*2); rCtx.fill();
-    [0.25,0.5,0.75,1].forEach(s=>{rCtx.beginPath();rCtx.arc(cx,cy,r*s,0,Math.PI*2);rCtx.strokeStyle='rgba(26,58,85,0.7)';rCtx.lineWidth=0.5;rCtx.stroke();});
-    rCtx.strokeStyle='rgba(26,58,85,0.5)'; rCtx.lineWidth=0.5;
-    rCtx.beginPath();rCtx.moveTo(cx,cy-r);rCtx.lineTo(cx,cy+r);rCtx.stroke();
-    rCtx.beginPath();rCtx.moveTo(cx-r,cy);rCtx.lineTo(cx+r,cy);rCtx.stroke();
-    const rad=radarAngle*(Math.PI/180);
-    for(let a=0;a<60;a++){
-        const angle=(rad-(a*Math.PI/180)+Math.PI*2)%(Math.PI*2);
-        rCtx.beginPath();rCtx.moveTo(cx,cy);rCtx.arc(cx,cy,r-1,angle,angle+0.02);
-        rCtx.strokeStyle=`rgba(0,255,136,${Math.max(0,(60-a)/60)*0.35})`;rCtx.lineWidth=1;rCtx.stroke();
-    }
-    rCtx.beginPath();rCtx.moveTo(cx,cy);rCtx.lineTo(cx+(r-1)*Math.cos(rad),cy+(r-1)*Math.sin(rad));
-    rCtx.strokeStyle='#00ff88';rCtx.lineWidth=1.5;rCtx.shadowColor='#00ff88';rCtx.shadowBlur=8;rCtx.stroke();rCtx.shadowBlur=0;
-    radarDots=radarDots.filter(d=>d.life>0);
-    radarDots.forEach(d=>{
-        rCtx.beginPath();rCtx.arc(d.x,d.y,d.size,0,Math.PI*2);
-        rCtx.fillStyle=`rgba(0,255,136,${d.life/d.maxLife})`;rCtx.shadowColor='#00ff88';rCtx.shadowBlur=8;rCtx.fill();rCtx.shadowBlur=0;
-        d.life-=radarScan?0.5:1;
-    });
-    rCtx.beginPath();rCtx.arc(cx,cy,r,0,Math.PI*2);rCtx.strokeStyle='rgba(26,58,85,0.8)';rCtx.lineWidth=1;rCtx.stroke();
-    radarAngle=(radarAngle+(radarScan?3:1.5))%360;
-    requestAnimationFrame(drawRadar);
-}
-drawRadar();
-
-function spawnRadarDot(){
-    const size=dom.radarCanvas.width,cx=size/2,cy=size/2,r=size/2-20;
-    const angle=Math.random()*Math.PI*2,dist=Math.random()*r*0.8+10;
-    radarDots.push({x:cx+dist*Math.cos(angle),y:cy+dist*Math.sin(angle),size:Math.random()*3+2,life:120,maxLife:120});
-}
-
-/* MODE SWITCH */
-document.querySelectorAll('.mode-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-        document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        state.mode=btn.dataset.mode;
-        dom.modeDisplay.textContent=state.mode.toUpperCase();
-        dom.audioBlock.style.display=(state.mode==='image')?'none':'block';
-        dom.imageBlock.style.display=(state.mode==='audio')?'none':'block';
-        addLog(`MODE SWITCHED → ${state.mode.toUpperCase()}`,'info');
-    });
-});
-
-/* RECORD */
-let mediaRecorder, audioChunks=[];
-dom.recordBtn.addEventListener('click',async()=>{
-    if(state.isRecording)return;
-    try{
-        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-        mediaRecorder=new MediaRecorder(stream); audioChunks=[];
-        mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
-        mediaRecorder.onstop=()=>{
-            state.recordedAudioBlob=new Blob(audioChunks,{type:'audio/webm'});
-            dom.audioPreview.src=URL.createObjectURL(state.recordedAudioBlob);
-            stream.getTracks().forEach(t=>t.stop());
-            state.isRecording=false; waveActive=false;
-            dom.recordBtn.classList.remove('recording'); dom.recLed.style.opacity='0.2';
-            dom.recordProgress.style.display='none';
-            addLog('AUDIO SAMPLE CAPTURED — 5s BUFFER','success');
-        };
-        mediaRecorder.start(); state.isRecording=true; waveActive=true;
-        dom.recordBtn.classList.add('recording'); dom.recLed.style.opacity='1';
-        dom.recordProgress.style.display='block';
-        addLog('RECORDING ACOUSTIC SAMPLE...','warn');
-        let elapsed=0;
-        const iv=setInterval(()=>{
-            elapsed+=100; dom.recordFill.style.width=(elapsed/5000*100)+'%';
-            dom.recordLabel.textContent=`RECORDING... ${((5000-elapsed)/1000).toFixed(1)}s`;
-            if(elapsed>=5000)clearInterval(iv);
-        },100);
-        setTimeout(()=>mediaRecorder.stop(),5000);
-    }catch{addLog('MICROPHONE ACCESS DENIED','error');}
-});
-
-/* FILE INPUTS */
-dom.audioFile.addEventListener('change',()=>{
-    if(!dom.audioFile.files[0])return;
-    dom.audioPreview.src=URL.createObjectURL(dom.audioFile.files[0]);
-    waveActive=true; setTimeout(()=>{waveActive=false;},2000);
-    addLog(`AUDIO FILE LOADED: ${dom.audioFile.files[0].name}`,'success');
-});
-dom.imageFile.addEventListener('change',()=>{
-    if(!dom.imageFile.files[0])return;
-    const img=new Image();
-    img.onload=()=>{dom.photoCanvas.width=img.width;dom.photoCanvas.height=img.height;dom.photoCanvas.getContext('2d').drawImage(img,0,0);};
-    img.src=URL.createObjectURL(dom.imageFile.files[0]);
-    dom.photoCanvas.style.display='block'; dom.cameraPreview.style.display='none'; dom.viewportIdle.style.display='none';
-    state.capturedImageBlob=dom.imageFile.files[0];
-    addLog(`IMAGE FILE LOADED: ${dom.imageFile.files[0].name}`,'success');
-});
-
-/* CAMERA */
-dom.openCameraBtn.addEventListener('click',async()=>{
-    try{
-        state.cameraStream=await navigator.mediaDevices.getUserMedia({video:true});
-        dom.cameraPreview.srcObject=state.cameraStream; dom.cameraPreview.style.display='block'; dom.viewportIdle.style.display='none';
-        addLog('OPTICAL SENSOR ONLINE','success');
-    }catch{addLog('CAMERA ACCESS DENIED','error');}
-});
-dom.captureBtn.addEventListener('click',()=>{
-    if(!state.cameraStream){addLog('OPEN CAMERA FIRST','warn');return;}
-    const v=dom.cameraPreview,c=dom.photoCanvas;
-    c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0); c.style.display='block';
-    c.toBlob(blob=>{state.capturedImageBlob=blob;},'image/jpeg');
-    addLog('PHOTO CAPTURED — OPTICAL BUFFER SAVED','success');
-});
-
-/* ANALYZE */
-dom.analyzeBtn.addEventListener('click',async()=>{
-    if(state.isScanning)return;
-    state.isScanning=true; state.scanCount++;
-    dom.analyzeBtn.classList.add('scanning');
-    dom.analyzeBtn.querySelector('.analyze-text').textContent='⟳ SCANNING...';
-    dom.scanStatus.textContent='SCANNING'; dom.footerStatus.textContent='STATUS: SCANNING';
-    radarScan=true; waveActive=true;
-    addLog(`SCAN #${state.scanCount} INITIATED — MODE: ${state.mode.toUpperCase()}`,'warn');
-    const fd=new FormData();
-    const af=dom.audioFile.files[0],imgf=dom.imageFile.files[0];
-    if(af)fd.append('audio',af); else if(state.recordedAudioBlob)fd.append('audio',state.recordedAudioBlob);
-    if(imgf)fd.append('image',imgf); else if(state.capturedImageBlob)fd.append('image',state.capturedImageBlob);
-    try{
-        const res=await fetch('/analyze/'+state.mode,{method:'POST',body:fd});
-        handleResult(await res.json());
-    }catch{
-        const demos={
-            audio:{species:'Indian Sparrow',type:'BIRD',confidence:0.87,distance:18.4},
-            image:{species:'Common Myna',type:'BIRD',confidence:0.91,distance:22.0},
-            fusion:{species:'Indian Peacock',type:'BIRD',confidence:0.95,distance:35.6}
-        };
-        addLog('DEMO MODE — SERVER OFFLINE','warn');
-        handleResult(demos[state.mode]);
-    }
-    dom.analyzeBtn.classList.remove('scanning');
-    dom.analyzeBtn.querySelector('.analyze-text').textContent='⟫ INITIATE SCAN';
-    dom.scanStatus.textContent='COMPLETE'; dom.footerStatus.textContent='STATUS: STANDBY';
-    radarScan=false; waveActive=false; state.isScanning=false;
-    for(let i=0;i<3;i++)setTimeout(spawnRadarDot,i*200);
-});
-
-function handleResult(data){
-    const conf=data.confidence||0, dist=data.distance||null, species=data.species||'UNKNOWN', type=data.type||'—';
-    dom.species.textContent=species.toUpperCase(); dom.speciesType.textContent=`CLASS: ${type}`;
-    dom.confidence.textContent=(conf*100).toFixed(1)+'%'; dom.confFill.style.width=(conf*100)+'%';
-    dom.distance.textContent=dist?dist.toFixed(1)+' m':'— m'; dom.modeDisplay.textContent=state.mode.toUpperCase();
-    dom.threatLevel.textContent=conf>0.9?'VERIFIED':conf>0.7?'PROBABLE':'UNCERTAIN';
-    if(state.mode==='audio'){setBar('audio',conf);setBar('image',0);setBar('dist',conf*0.76);setBar('fusion',0);}
-    else if(state.mode==='image'){setBar('audio',0);setBar('image',conf);setBar('dist',conf*0.7);setBar('fusion',0);}
-    else{setBar('audio',conf*0.87);setBar('image',conf*0.91);setBar('dist',conf*0.76);setBar('fusion',conf);}
-    document.querySelectorAll('.sig-bar').forEach((bar,i)=>{
-        setTimeout(()=>{
-            bar.style.height=(Math.random()*conf*80+10)+'%';
-            bar.style.background=conf>0.8?'var(--green-dim)':conf>0.6?'var(--amber-dim)':'var(--red-dim)';
-            bar.style.borderColor=conf>0.8?'var(--green)':conf>0.6?'var(--amber)':'var(--red)';
-        },i*50);
-    });
-    addLog(`SPECIES IDENTIFIED: ${species.toUpperCase()}`,'success');
-    addLog(`CONFIDENCE: ${(conf*100).toFixed(1)}%  DISTANCE: ${dist?dist.toFixed(1)+'m':'N/A'}`,'success');
-    dom.jsonOutput.textContent=JSON.stringify(data,null,2);
-    addHistory(species,conf);
-}
-
-function setBar(model,pct){
-    const p=Math.min(100,pct*100);
-    dom[model+'Fill'].style.width=p+'%'; dom[model+'Pct'].textContent=p.toFixed(0)+'%';
-}
-
-function addLog(msg,type='info'){
-    const e=document.createElement('div');
-    e.className=`log-entry ${type}`;
-    e.innerHTML=`<span class="log-time">${new Date().toTimeString().slice(0,8)}</span><span class="log-msg">» ${msg}</span>`;
-    dom.logFeed.appendChild(e); dom.logFeed.scrollTop=dom.logFeed.scrollHeight;
-}
-
-dom.clearLogs.addEventListener('click',()=>{
-    dom.logFeed.innerHTML=''; dom.jsonOutput.textContent='// Cleared.'; addLog('LOG CLEARED','info');
-});
-
-function addHistory(species,conf){
-    const empty=dom.historyList.querySelector('.history-empty'); if(empty)empty.remove();
-    const item=document.createElement('div'); item.className='history-item';
-    item.innerHTML=`<span class="history-species">${species.toUpperCase()}</span><span class="history-conf">${(conf*100).toFixed(0)}%</span><span class="history-time">${new Date().toTimeString().slice(0,5)}</span>`;
-    dom.historyList.prepend(item);
-    const items=dom.historyList.querySelectorAll('.history-item');
-    if(items.length>10)items[items.length-1].remove();
-}
-</script>
+<!-- JavaScript -->
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
