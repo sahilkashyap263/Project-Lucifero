@@ -7,3 +7,5 @@ setup.sh
 .vscode
 
 wlds9.db
+
+static/uploads
