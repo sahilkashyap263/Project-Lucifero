@@ -1,7 +1,7 @@
 # WLDS-9 — Multi-Modal Species Identification System
 
 > ⚠️ **This project is currently under active development and is NOT production-ready.**
-> All inference engines are running in **dummy/simulation mode** — they return realistic randomised outputs, not real model predictions. Trained models are being prepared separately on Kaggle. This codebase exists to validate the architecture, fusion logic, and execution pipeline before real models are integrated.
+> Audio and distance models are fully trained and integrated. The image model is currently being retrained due to low accuracy. Docker and hosting are pending.
 
 ---
 
@@ -29,7 +29,7 @@ Flask REST API  (app.py)
     ↓
 Core Inference Engine  (core/inference.py)
     ├── audio_engine.py    → CNN on Mel-spectrogram
-    ├── image_engine.py    → MobileNet/ResNet transfer learning
+    ├── image_engine.py    → CNN transfer learning
     ├── distance_engine.py → Acoustic regression model
     └── fusion_engine.py   → Weighted confidence fusion
     ↓
@@ -248,7 +248,7 @@ DELETE FROM users WHERE username = 'example_user';
 | Stage | Status | Description |
 |---|---|---|
 | **Stage 1** | ✅ Complete | Dataset engineering — species list, folder structure |
-| **Stage 2** | ✅ Complete | Model training on Kaggle — audio CNN, image MobileNet, GBR distance regression |
+| **Stage 2** | ✅ Complete | Model training on Kaggle — audio CNN, image CNN, GBR distance regression |
 | **Stage 3** | ✅ Complete | Core inference engine — CLI-testable, all three models integrated |
 | **Stage 4** | ✅ Complete | Flask API layer wired to inference engines |
 | **Stage 5** | ✅ Complete | Frontend — scanner UI, all modes, species info panel |
