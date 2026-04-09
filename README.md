@@ -1,44 +1,72 @@
 # WLDS-9 — Multi-Modal Species Identification System
 
-> ⚠️ **This project is currently under active development and is NOT production-ready.**
-> Audio and distance models are fully trained and integrated. The image model is currently being retrained due to low accuracy. Docker and hosting are pending.
+An AI-powered wildlife identification system using multi-modal sensor fusion. Combines acoustic and visual analysis to identify 35 species across birds, mammals, and amphibians — returning the species name, confidence score, estimated distance, habitat data, and a direct Wikipedia link for every detection.
 
 ---
 
-A software-first simulation of an AI-powered wildlife identification device using multi-modal sensor fusion. Built to validate the core intelligence pipeline — audio classification, image classification, distance estimation, and weighted fusion — before hardware integration.
+## How It Works
+
+The system runs three independent ML models and fuses their outputs into a single prediction.
+
+```
+Audio Input ──► Audio CNN (Mel-spectrogram)  ──┐
+                                                ├──► Fusion Engine ──► Final Prediction
+Image Input ──► Image CNN (MobileNetV2)      ──┤
+                    │                           │
+                    └──► GBR Distance Model  ───┘
+```
+
+**Audio CNN** — A 5-layer convolutional network trained on mel-spectrograms. Audio is split into overlapping 4-second chunks and predictions are averaged across all chunks for accuracy.
+
+**Image CNN** — MobileNetV2 transfer learning trained on wildlife images. Returns species, habitat zone, activity level, size class, and body coverage.
+
+**Distance Model** — A Gradient Boosting Regressor trained on 10 acoustic features (mel energy, MFCC, RMS, spectral centroid, ZCR). Predicts distance as Near (10–30 m), Medium (31–60 m), or Far (61–90 m).
+
+**Fusion Engine** — Combines audio and image predictions using weighted confidence (58% image / 42% audio). Detects agreement or conflict between modalities and adjusts final confidence accordingly.
 
 ---
 
-## Project Identity
+## Analysis Modes
 
-| Property | Value |
+### Audio Mode
+- **Input:** WAV / MP3 / M4A / WebM file, or live 15-second microphone recording
+- **Output:** Species, confidence, distance estimate, distance label
+
+### Visual Mode
+- **Input:** JPG / PNG / WebP file, or live webcam capture
+- **Output:** Species, confidence, habitat zone, activity level, size class, frame coverage
+
+### Fusion Mode
+- **Input:** Audio + Image simultaneously
+- **Output:** Fused species prediction, agreement/conflict status, full metadata from both modalities
+- **Weighting:** 58% image / 42% audio
+
+---
+
+## Species Coverage — 35 Total
+
+### Birds (23)
+American Pipit, Bank Swallow, Black-billed Cuckoo, Bobolink, Brewer's Blackbird, California Gull, Eastern Towhee, European Goldfinch, Fish Crow, Gray Catbird, Gray-crowned Rosy-Finch, Great Crested Flycatcher, House Sparrow, Indigo Bunting, Northern Cardinal, Orchard Oriole, Ovenbird, Pacific-slope Flycatcher, Painted Bunting, Purple Finch, Rufous Hummingbird, Rusty Blackbird, Yellow-breasted Chat
+
+### Mammals (11)
+Asian Elephant, Bear, Cat, Cow, Donkey, Horse, Lion, Monkey, Sheep, Wolf / Dog, Chicken
+
+### Amphibians (1)
+Frog
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
 |---|---|
-| **System Name** | Multi-Modal Species Identification System |
-| **Short Code** | WLDS-9 |
-| **Stage** | Models complete — Docker & hosting pending |
-| **Goal** | Prove multi-modal fusion logic and edge AI execution pipeline |
-
----
-
-## Architecture
-
-```
-Frontend (Browser)
-    ↓
-Flask REST API  (app.py)
-    ↓
-Core Inference Engine  (core/inference.py)
-    ├── audio_engine.py    → CNN on Mel-spectrogram
-    ├── image_engine.py    → CNN transfer learning
-    ├── distance_engine.py → Acoustic regression model
-    └── fusion_engine.py   → Weighted confidence fusion
-    ↓
-SQLite Database  (wlds9.db)
-    ↓
-Detection History Page  (/history)
-```
-
-**Golden Rule:** Flask never contains ML logic. All intelligence lives in `core/`.
+| Backend | Python 3, Flask |
+| ML — Audio | Custom CNN on 128-band mel-spectrograms |
+| ML — Image | MobileNetV2 transfer learning |
+| ML — Distance | Gradient Boosting Regressor (scikit-learn) |
+| Frontend | Vanilla JS, CSS3, Font Awesome 6, Google Fonts |
+| Database | SQLite |
+| Auth | Flask sessions, bcrypt |
 
 ---
 
@@ -47,71 +75,69 @@ Detection History Page  (/history)
 ```
 wlds9/
 ├── app.py                    ← Flask app factory and entry point
-├── config.py                 ← Flask config (secret key, upload folder, etc.)
-├── auth.py                   ← User auth: register, login, session management
+├── config.py                 ← Flask config
+├── auth.py                   ← Register, login, session management
 ├── routes.py                 ← Blueprint registration
 ├── wlds9.db                  ← SQLite database (auto-created on first run)
 ├── requirements.txt
 │
 ├── core/
-│   ├── __init__.py
 │   ├── inference.py          ← Main pipeline orchestrator
 │   ├── audio_engine.py       ← Audio species classification
 │   ├── image_engine.py       ← Visual species classification
-│   ├── distance_engine.py    ← Distance estimation (acoustic)
-│   ├── fusion_engine.py      ← Multi-modal fusion logic
-│   └── logger.py             ← SQLite logging
+│   ├── distance_engine.py    ← Distance estimation
+│   ├── fusion_engine.py      ← Multi-modal fusion
+│   └── logger.py             ← Detection logging
+│
+├── models/
+│   ├── AnimalSounds.keras    ← Trained audio CNN weights
+│   ├── AnimalImages.keras    ← Trained image CNN weights
+│   ├── gbr_distance.pkl      ← Trained GBR distance model
+│   ├── scaler_distance.pkl   ← Feature scaler
+│   ├── thresholds.pkl        ← Distance bucket thresholds
+│   └── labels.json           ← 35 class scientific name labels
 │
 ├── templates/
-│   ├── base.html             ← Base layout template
-│   ├── landing.html          ← Public landing page
-│   ├── index.html            ← Main scanner dashboard (authenticated)
-│   ├── auth.html             ← Standalone login / register page
-│   └── history.html          ← Scan history page
+│   ├── base.html
+│   ├── landing.html
+│   ├── index.html            ← Scanner dashboard
+│   ├── auth.html
+│   └── history.html
 │
-├── static/
-│   ├── css/
-│   │   ├── style.css         ← Main app styles (glassmorphism design system)
-│   │   ├── landing.css       ← Landing page styles
-│   │   ├── auth.css          ← Standalone auth page styles
-│   │   └── auth_modal.css    ← Inline modal auth styles
-│   ├── js/
-│   │   ├── app.js            ← Main scanner app logic
-│   │   └── landing.js        ← Landing page animations + auth modal
-│   └── images/
-│       └── logo.png
-│
-├── dataset/                  ← Raw audio/image data
-├── models/                   ← Trained .pt model files
-└── logs/                     ← Legacy (replaced by SQLite)
+└── static/
+    ├── css/
+    └── js/
+        ├── app.js            ← Scanner logic
+        └── landing.js        ← Landing page + auth modal
 ```
 
 ---
 
 ## Setup & Run
 
-### 1. Create virtual environment
+**1. Create and activate virtual environment**
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+python -m venv venv
+source venv/bin/activate          # Mac / Linux
+source venv/Scripts/activate      # Windows (Git Bash)
 ```
 
-### 2. Install dependencies
+**2. Install dependencies**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Test inference engine (CLI — no server needed)
+**3. Test inference engine from CLI (no server needed)**
 
 ```bash
-python core/inference.py --mode audio
-python core/inference.py --mode image
-python core/inference.py --mode fusion
+python core/inference.py --mode audio  --audio path/to/file.wav
+python core/inference.py --mode image  --image path/to/file.jpg
+python core/inference.py --mode fusion --audio path/to/file.wav --image path/to/file.jpg
 ```
 
-### 4. Start Flask server
+**4. Start the server**
 
 ```bash
 python app.py
@@ -126,185 +152,79 @@ Open → **http://127.0.0.1:5000**
 | Method | Route | Description |
 |---|---|---|
 | `GET` | `/` | Landing page |
-| `GET` | `/scanner` | Main scanner UI (authenticated) |
-| `GET` | `/history` | Detection history page |
-| `POST` | `/analyze/audio` | Audio-only species scan |
-| `POST` | `/analyze/image` | Image-only species scan |
+| `GET` | `/scanner` | Scanner dashboard (login required) |
+| `GET` | `/history` | Detection history (login required) |
+| `POST` | `/analyze/audio` | Audio-only scan |
+| `POST` | `/analyze/image` | Image-only scan |
 | `POST` | `/analyze/fusion` | Full multi-modal scan |
-| `GET` | `/logs` | Query SQLite logs (`?limit=`, `?mode=`) |
-| `GET` | `/logs/stats` | Aggregate stats (top species, avg confidence) |
-| `POST` | `/logs/clear` | Wipe all detection logs |
+| `GET` | `/logs` | Fetch detection logs (`?limit=`, `?mode=`) |
+| `GET` | `/logs/stats` | Aggregate stats and top species |
+| `POST` | `/logs/clear` | Clear all logs (admin only) |
 
 ---
 
-## Analysis Modes
-
-### Audio Mode
-- **Input:** WAV / MP3 / M4A / WebM file or live 15-second microphone recording
-- **Output:** Species, confidence, estimated distance, distance label
-
-### Visual Mode
-- **Input:** JPG / PNG / WebP or live webcam capture
-- **Output:** Species, confidence, habitat zone, activity level, size class, frame coverage
-
-### Fusion Mode
-- **Input:** Audio + Image simultaneously
-- **Output:** Fused species prediction with agreement/conflict detection
-- **Formula:** `D = (c₁·d₁ + c₂·d₂ + c₃·d₃) / (c₁ + c₂ + c₃)`
-- **Weighting:** 58% image / 42% audio; agreement boosts confidence 10%, conflict applies 5% penalty
-
----
-
-## Species Coverage (35 Total)
-
-### Birds (23)
-American Pipit, Bobolink, Bank Swallow, Black-billed Cuckoo, Brewer's Blackbird, California Gull, Eastern Towhee, European Goldfinch, Fish Crow, Gray Catbird, Gray-crowned Rosy-Finch, Great Crested Flycatcher, House Sparrow, Indigo Bunting, Northern Cardinal, Orchard Oriole, Ovenbird, Pacific-slope Flycatcher, Painted Bunting, Purple Finch, Rufous Hummingbird, Rusty Blackbird, Yellow-breasted Chat
-
-### Mammals (11)
-Asian Elephant, Bear, Cat, Chicken, Cow, Donkey, Horse, Lion, Monkey, Sheep, Wolf / Dog
-
-### Amphibians (1)
-Frog
-
----
-
-## Auth System
+## Auth
 
 - Register with email — username is derived from the email prefix automatically
-- Passwords are hashed (bcrypt) before storage
-- Admin role supported via `is_admin` flag in the `users` table
-- An admin account is seeded automatically on first run — **change the default credentials immediately**
-- Login/register available as a full-page view (`auth.html`) or inline modal on the landing page (`auth_modal.css`)
-- Session-based authentication — scanner dashboard is inaccessible without login
-- Welcome toast shown on first login after registration
-- Admin badge displayed in the scanner header for admin accounts
+- Passwords are hashed with bcrypt
+- Session-based authentication — scanner is inaccessible without login
+- Admin role available — admin badge shown in header, user filter enabled on history page
+- An admin account is seeded on first run — change the default credentials before use
 
 ---
 
-## Database Reference
-
-All detections are stored in `wlds9.db` (SQLite — no extra install needed).
-
-### 1. Access the database in bash terminal
-
-```bash
-sqlite3 wlds9.db
-```
-
-### 2. List all tables
-
-```bash
-.tables
-```
-
-| Table | Description |
-|---|---|
-| `detection_logs` | Scan history — one row per detection |
-| `users` | Auth table — registered user accounts |
-
-### 3. SQLite Query to Fetch History Records
+## Database Queries
 
 ```sql
-SELECT id, timestamp, mode, species, confidence, distance, distance_label, logged_by
+-- Recent successful detections
+SELECT id, timestamp, mode, species, confidence, distance, logged_by
 FROM detection_logs
 WHERE is_error = 0
 ORDER BY id DESC
 LIMIT 20;
-```
 
-### 4. Delete From a User Table
-
-```sql
-DELETE FROM detection_logs;
-DELETE FROM sqlite_sequence WHERE name='detection_logs';
-```
-
-### 5. For more commands, type `.help`
-
----
-
-### Other Useful Queries
-
-**Count scans per user:**
-```sql
-SELECT logged_by, COUNT(*) as total_scans
+-- Scans per user
+SELECT logged_by, COUNT(*) AS total_scans
 FROM detection_logs
 WHERE is_error = 0
 GROUP BY logged_by
 ORDER BY total_scans DESC;
+
+-- Top detected species
+SELECT species, COUNT(*) AS count
+FROM detection_logs
+WHERE is_error = 0 AND species IS NOT NULL
+GROUP BY species
+ORDER BY count DESC
+LIMIT 10;
+
+-- Clear all logs
+DELETE FROM detection_logs;
+DELETE FROM sqlite_sequence WHERE name='detection_logs';
 ```
-
-**Delete a specific user:**
-```sql
-DELETE FROM users WHERE username = 'example_user';
-```
-
-> **Recommended GUI:** Install the **SQLite Viewer** extension in VS Code and click `wlds9.db` to browse all data visually.
-
----
-
-## Development Roadmap
-
-| Stage | Status | Description |
-|---|---|---|
-| **Stage 1** | ✅ Complete | Dataset engineering — species list, folder structure |
-| **Stage 2** | ✅ Complete | Model training on Kaggle — audio CNN, image CNN, GBR distance regression |
-| **Stage 3** | ✅ Complete | Core inference engine — CLI-testable, all three models integrated |
-| **Stage 4** | ✅ Complete | Flask API layer wired to inference engines |
-| **Stage 5** | ✅ Complete | Frontend — scanner UI, all modes, species info panel |
-| **Stage 6** | ✅ Complete | Auth system — register, login, sessions, admin badge, welcome toast |
-| **Stage 7** | ✅ Complete | SQLite logging + Detection History page |
-| **Stage 8** | ✅ Complete | Landing page — animated hero, mode cards, species cloud, auth modal |
-| **Stage 9** | 🔲 Pending | Dockerise application |
-| **Stage 10** | 🔲 Pending | Cloud hosting and deployment |
-| **Stage 11** | 🔲 Pending | Production optimisation and threshold calibration |
 
 ---
 
 ## Dataset Sources
 
-| Purpose | Dataset | Link |
-|---|---|---|
-| Bird audio | xeno-canto | https://xeno-canto.org |
-| Bird images | iNaturalist | https://www.inaturalist.org |
-| Audio (Kaggle) | BirdCLEF 2024 | https://www.kaggle.com/competitions/birdclef-2024 |
-| Animal images | Animals Detection Dataset | https://www.kaggle.com/datasets/antoreepjana/animals-detection-images-dataset |
-
----
-
-## Current Limitations
-
-| Component | Current State | Target State |
-|---|---|---|
-| `fusion_engine.py` | Weighted fusion logic complete | Fine-tune agreement/conflict thresholds with real-world data |
-| Species info panel | Hardcoded lookup table in `app.js` | Serve from DB / species API |
-| Conservation data | Static, manually curated | Pull from IUCN Red List API |
-| Deployment | Local only | Docker + cloud hosted |
-
----
-
-## Future Transition
-
-| Current | Replace With |
+| Purpose | Source |
 |---|---|
-| Flask | FastAPI or embedded service |
-| PyTorch `.pt` | TensorFlow Lite (edge deployment) |
-| File uploads | Live sensor streams (microphone array + camera module) |
-| SQLite | PostgreSQL or time-series DB |
-
-Core fusion logic remains unchanged — that is the key asset.
+| Bird audio | [xeno-canto](https://xeno-canto.org) |
+| Bird images | [iNaturalist](https://www.inaturalist.org) |
+| Audio (Kaggle) | [BirdCLEF 2024](https://www.kaggle.com/competitions/birdclef-2024) |
+| Animal images | [Animals Detection Dataset](https://www.kaggle.com/datasets/antoreepjana/animals-detection-images-dataset) |
 
 ---
 
-## Tech Stack
+## Team
 
-| Layer | Technology |
+| Name | GitHub |
 |---|---|
-| Backend | Python 3, Flask |
-| ML Models | Audio CNN, Image CNN (MobileNet/ResNet), GBR distance regression |
-| Database | SQLite (`wlds9.db`) |
-| Frontend | Vanilla JS, CSS3, Font Awesome 6, Google Fonts (Inter + JetBrains Mono) |
-| Auth | Flask sessions, bcrypt password hashing |
+| Sahil Kashyap | [@sahilkashyap263](https://github.com/sahilkashyap263) |
+| Mohammad Mujamil | [@mujamilh](https://github.com/mujamilh) |
+| Ashutosh Sharma | [@AshutoshSharma-091](https://github.com/AshutoshSharma-091) |
+| Amaan Alam | [@amaan541](https://github.com/amaan541) |
+| — | [GitHub]() |
 
 ---
 
